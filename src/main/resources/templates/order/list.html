@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Orders | MedStore</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+      align-items: center;
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+      max-width: 260px;
+      background: var(--surface);
+    }
+
+    .row-link { cursor: pointer; }
+    .row-link:hover td { background: rgba(0,214,143,.05); }
+  </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+  <a href="/orders/dashboard" class="navbar-brand">
+    <span class="cross">✚</span> MedStore
+  </a>
+  <ul class="nav-links">
+    <li><a href="/orders/dashboard">Dashboard</a></li>
+    <li><a href="/orders" class="active">All Orders</a></li>
+    <li><a href="/orders/place">+ Place Order</a></li>
+  </ul>
+</nav>
+
+<main class="page">
+
+  <!-- Success Message -->
+  <div th:if="${successMsg}" class="alert alert-success">
+    ✓ <span th:text="${successMsg}"></span>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">All <span>Orders</span></div>
+      <div class="page-subtitle"
+           th:text="${orders.size()} + ' total orders'">0 total orders</div>
+    </div>
+    <a href="/orders/place" class="btn btn-primary">+ Place Order</a>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <input type="text" id="searchInput"
+           placeholder="Search by ID, customer…"
+           oninput="filterTable()">
+
+    <select id="statusFilter" onchange="filterTable()">
+      <option value="">All Statuses</option>
+      <option value="PENDING">⏳ Pending</option>
+      <option value="CONFIRMED">✅ Confirmed</option>
+      <option value="PROCESSING">🔄 Processing</option>
+      <option value="SHIPPED">🚚 Shipped</option>
+      <option value="DELIVERED">📦 Delivered</option>
+      <option value="CANCELLED">❌ Cancelled</option>
+    </select>
+
+    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+  </div>
+
+  <!-- Empty State -->
+  <div th:if="${orders.empty}" class="empty-state">
+    <span class="empty-icon">📋</span>
+    <p>No orders placed yet</p>
+    <a href="/orders/place" class="btn btn-primary">Place First Order</a>
+  </div>
+
+  <!-- Table -->
+  <div th:if="${!orders.empty}" class="table-wrap">
+    <table id="ordersTable">
+      <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>Customer</th>
+        <th>Customer ID</th>
+        <th>Items</th>
+        <th>Total (Rs.)</th>
+        <th>Payment</th>
+        <th>Status</th>
+        <th>Placed</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+
+      <tbody>
+      <tr th:each="o : ${orders}"
+          th:data-status="${o.status}"
+          th:data-search="${o.orderId + ' ' + o.customerName + ' ' + o.customerId}"
+          th:data-url="@{/orders/{id}(id=${o.orderId})}"
+          class="row-link">
+
+        <td class="td-mono" th:text="${o.orderId}">ORD-0001</td>
+        <td th:text="${o.customerName}">John Doe</td>
+
+        <td style="font-size:.78rem;color:var(--text-muted)"
+            th:text="${o.customerId}">C001</td>
+
+        <td th:text="${o.items.size()}">1</td>
+
+        <td>
+            <span style="font-family:var(--mono);font-weight:600;color:var(--accent)"
+                  th:text="${#numbers.formatDecimal(o.totalAmount,1,2)}">0.00</span>
+        </td>
+
+        <td style="font-size:.78rem"
+            th:text="${o.paymentMethod != null ? o.paymentMethod.label : '—'}">—</td>
+
+        <td>
+            <span th:class="'badge badge-' + ${o.status.name().toLowerCase()}"
+                  th:text="${o.status.icon + ' ' + o.status.label}">
+            </span>
+        </td>
+
+        <td style="font-size:.75rem;color:var(--text-muted)"
+            th:text="${o.formattedCreatedAt}">—</td>
+
+        <!-- Actions -->
+        <td onclick="event.stopPropagation()">
+          <div style="display:flex;gap:.4rem">
+
+            <a th:href="@{/orders/{id}(id=${o.orderId})}"
+               class="btn btn-outline btn-sm">View</a>
+
+            <!-- Cancel -->
+            <form th:if="${o.status.name() == 'PENDING' or o.status.name() == 'CONFIRMED'}"
+                  th:action="@{/orders/{id}/cancel(id=${o.orderId})}"
+                  method="post"
+                  onsubmit="return confirm('Cancel this order?')">
+              <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+            </form>
+
+            <!-- Delete -->
+            <form th:action="@{/orders/{id}/delete(id=${o.orderId})}"
+                  method="post"
+                  onsubmit="return confirm('Delete permanently?')">
+              <button type="submit" class="btn btn-ghost btn-sm">🗑</button>
+            </form>
+
+          </div>
+        </td>
+
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  MedStore Order Module · SE1020 OOP Project
+</footer>
+
+<!-- Scripts -->
+<script th:src="@{/js/app.js}"></script>
+
+<script>
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+
+    document.querySelectorAll('#ordersTable tbody tr').forEach(row => {
+      const searchData = (row.dataset.search || '').toLowerCase();
+      const matchSearch = !q || searchData.includes(q);
+      const matchStatus = !status || row.dataset.status === status;
+
+      row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+    });
+  }
+
+  function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    filterTable();
+  }
+
+  // Row click navigation (safe load)
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('tbody tr[data-url]').forEach(row => {
+      row.addEventListener('click', function (e) {
+        if (e.target.closest('a, button, form')) return;
+        window.location.href = this.dataset.url;
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

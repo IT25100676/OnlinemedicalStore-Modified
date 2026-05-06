@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error | MedStore</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <style>
+    .error-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      text-align: center;
+      gap: 1rem;
+    }
+    .error-code {
+      font-family: var(--mono);
+      font-size: 5rem;
+      font-weight: 700;
+      color: var(--danger);
+      opacity: .15;
+      line-height: 1;
+    }
+    .error-title {
+      font-family: var(--mono);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .error-msg {
+      color: var(--text-muted);
+      font-size: .9rem;
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/orders/dashboard" class="navbar-brand"><span class="cross">✚</span> MedStore</a>
+  <ul class="nav-links">
+    <li><a href="/orders/dashboard">Dashboard</a></li>
+    <li><a href="/orders">All Orders</a></li>
+    <li><a href="/orders/place">+ Place Order</a></li>
+  </ul>
+</nav>
+
+<main class="page">
+  <div class="error-page">
+    <div class="error-code">ERR</div>
+    <div class="error-title" th:text="${errorTitle}">Something Went Wrong</div>
+    <div class="error-msg" th:text="${errorMessage}">An unexpected error occurred.</div>
+    <div style="display:flex;gap:.75rem;margin-top:.5rem">
+      <a href="/orders/dashboard" class="btn btn-primary">Go to Dashboard</a>
+      <a href="/orders" class="btn btn-outline">All Orders</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  MedStore Order Module &nbsp;·&nbsp; SE1020 OOP Project
+</footer>
+</body>
+</html>

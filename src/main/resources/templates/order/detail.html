@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="'Order ' + ${order.orderId} + ' | MedStore'">Order Detail</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <style>
+    .detail-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media(max-width:900px){ .detail-layout{ grid-template-columns:1fr; } }
+
+    .action-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .action-section-title {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .25rem;
+    }
+
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table th, .items-table td {
+      padding: .6rem .8rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: .85rem;
+    }
+    .items-table th {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      background: var(--surface-2);
+    }
+    .items-table tbody tr:last-child td { border-bottom: none; }
+    .items-table .line-total { font-family: var(--mono); color: var(--accent); text-align: right; }
+    .items-table tfoot td {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: var(--accent);
+      font-size: .95rem;
+      text-align: right;
+      border-top: 2px solid var(--border);
+    }
+
+    .payment-info {
+      background: var(--accent-glow);
+      border: 1px solid rgba(0,214,143,.2);
+      border-radius: var(--radius);
+      padding: .85rem 1rem;
+      font-size: .82rem;
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/orders/dashboard" class="navbar-brand"><span class="cross">✚</span> MedStore</a>
+  <ul class="nav-links">
+    <li><a href="/orders/dashboard">Dashboard</a></li>
+    <li><a href="/orders">All Orders</a></li>
+    <li><a href="/orders/place">+ Place Order</a></li>
+  </ul>
+</nav>
+
+<main class="page">
+
+  <!-- Flash -->
+  <div th:if="${successMsg}" class="alert alert-success">
+    <span>✓</span><span th:text="${successMsg}"></span>
+  </div>
+  <div th:if="${errorMsg}" class="alert alert-error">
+    <span>✕</span><span th:text="${errorMsg}"></span>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        Order <span th:text="${order.orderId}">ORD-0001</span>
+        &nbsp;
+        <span th:class="'badge badge-' + ${order.status.name().toLowerCase()}"
+              th:text="${order.status.icon} + ' ' + ${order.status.label}">Pending</span>
+      </div>
+      <div class="page-subtitle"
+           th:text="'Placed by ' + ${order.customerName} + ' on ' + ${order.formattedCreatedAt}">—</div>
+    </div>
+    <a href="/orders" class="btn btn-ghost">← All Orders</a>
+  </div>
+
+  <div class="detail-layout">
+
+    <!-- ── LEFT: order info ────────────────────────────────────── -->
+    <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+      <!-- Customer + Delivery -->
+      <div class="card">
+        <div class="card-header"><span class="dot"></span> Customer &amp; Delivery</div>
+        <div class="card-body">
+          <div class="detail-grid">
+            <div>
+              <div class="detail-row">
+                <span class="detail-key">Customer ID</span>
+                <span class="detail-val td-mono" th:text="${order.customerId}">C001</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Customer Name</span>
+                <span class="detail-val" th:text="${order.customerName}">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Order Placed</span>
+                <span class="detail-val" th:text="${order.formattedCreatedAt}">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Last Updated</span>
+                <span class="detail-val" th:text="${order.formattedUpdatedAt}">—</span>
+              </div>
+            </div>
+            <div>
+              <div class="detail-row">
+                <span class="detail-key">Delivery Address</span>
+                <span class="detail-val" th:text="${order.deliveryAddress}">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Payment Method</span>
+                <span class="detail-val"
+                      th:text="${order.paymentMethod != null ? order.paymentMethod.label : 'N/A'}">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Order Total</span>
+                <span class="detail-val td-mono"
+                      th:text="'Rs. ' + ${#numbers.formatDecimal(order.totalAmount, 1, 2)}">Rs. 0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items table -->
+      <div class="card">
+        <div class="card-header"><span class="dot"></span> Order Items</div>
+        <div class="card-body" style="padding:0">
+          <div th:if="${order.items.empty}" class="empty-state" style="padding:2rem">
+            <p>No items in this order</p>
+          </div>
+          <div th:if="${!order.items.empty}">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Medicine ID</th>
+                  <th>Medicine Name</th>
+                  <th>Unit Price</th>
+                  <th>Qty</th>
+                  <th style="text-align:right">Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="item : ${order.items}">
+                  <td class="td-mono" th:text="${item.medicineId}">MED001</td>
+                  <td th:text="${item.medicineName}">Medicine</td>
+                  <td style="font-family:var(--mono);font-size:.82rem"
+                      th:text="'Rs. ' + ${#numbers.formatDecimal(item.unitPrice, 1, 2)}">Rs. 0.00</td>
+                  <td th:text="${item.quantity}">1</td>
+                  <td class="line-total"
+                      th:text="'Rs. ' + ${#numbers.formatDecimal(item.lineTotal, 1, 2)}">Rs. 0.00</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="4" style="text-align:right;color:var(--text-muted);font-weight:400;font-size:.78rem">Grand Total</td>
+                  <td th:text="'Rs. ' + ${#numbers.formatDecimal(order.totalAmount, 1, 2)}">Rs. 0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment summary -->
+      <div class="card" th:if="${order.paymentMethod != null}">
+        <div class="card-header"><span class="dot"></span> Payment Info</div>
+        <div class="card-body">
+          <div class="payment-info">
+            💳 &nbsp;<span th:text="${order.paymentMethod.label}">Payment</span>
+            &nbsp;|&nbsp; Total: Rs. <span th:text="${#numbers.formatDecimal(order.totalAmount, 1, 2)}">0.00</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end LEFT -->
+
+    <!-- ── RIGHT: tracking + actions ──────────────────────────── -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+
+      <!-- Order Tracking Timeline -->
+      <div class="card">
+        <div class="card-header"><span class="dot"></span> Order Tracking</div>
+        <div class="card-body">
+          <div class="timeline" th:with="currentStatus=${order.status.name()}">
+
+            <!-- PENDING -->
+            <div th:class="'tl-step ' + (${currentStatus == 'PENDING'} ? 'active' : (${order.status.ordinal() > 0 and currentStatus != 'CANCELLED'} ? 'done' : ''))">
+              <div class="tl-dot">⏳</div>
+              <div class="tl-content">
+                <div class="tl-label">Order Placed</div>
+                <div class="tl-sub" th:text="${order.formattedCreatedAt}">—</div>
+              </div>
+            </div>
+
+            <!-- CONFIRMED -->
+            <div th:class="'tl-step ' + (${currentStatus == 'CONFIRMED'} ? 'active' : (${order.status.ordinal() > 1 and currentStatus != 'CANCELLED'} ? 'done' : ''))">
+              <div class="tl-dot">✅</div>
+              <div class="tl-content">
+                <div class="tl-label">Confirmed</div>
+                <div class="tl-sub">Payment accepted</div>
+              </div>
+            </div>
+
+            <!-- PROCESSING -->
+            <div th:class="'tl-step ' + (${currentStatus == 'PROCESSING'} ? 'active' : (${order.status.ordinal() > 2 and currentStatus != 'CANCELLED'} ? 'done' : ''))">
+              <div class="tl-dot">🔄</div>
+              <div class="tl-content">
+                <div class="tl-label">Processing</div>
+                <div class="tl-sub">Preparing your medicines</div>
+              </div>
+            </div>
+
+            <!-- SHIPPED -->
+            <div th:class="'tl-step ' + (${currentStatus == 'SHIPPED'} ? 'active' : (${order.status.ordinal() > 3 and currentStatus != 'CANCELLED'} ? 'done' : ''))">
+              <div class="tl-dot">🚚</div>
+              <div class="tl-content">
+                <div class="tl-label">Shipped</div>
+                <div class="tl-sub">On the way to you</div>
+              </div>
+            </div>
+
+            <!-- DELIVERED -->
+            <div th:class="'tl-step ' + (${currentStatus == 'DELIVERED'} ? 'active' : '')">
+              <div class="tl-dot">📦</div>
+              <div class="tl-content">
+                <div class="tl-label">Delivered</div>
+                <div class="tl-sub">Order complete</div>
+              </div>
+            </div>
+
+            <!-- CANCELLED (only shown if cancelled) -->
+            <div th:if="${currentStatus == 'CANCELLED'}" class="tl-step active">
+              <div class="tl-dot" style="border-color:var(--danger);background:rgba(255,77,106,.12)">❌</div>
+              <div class="tl-content">
+                <div class="tl-label" style="color:var(--danger)">Cancelled</div>
+                <div class="tl-sub" th:text="${order.formattedUpdatedAt}">—</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin: Update Status -->
+      <div class="action-box">
+        <div class="action-section-title">Update Status</div>
+        <form th:action="@{/orders/{id}/status(id=${order.orderId})}" method="post"
+              onsubmit="return confirmStatusUpdate(this)">
+          <select name="newStatus" style="margin-bottom:.65rem;background:var(--bg)">
+            <option th:each="s : ${allStatuses}"
+                    th:value="${s.name()}"
+                    th:text="${s.icon} + ' ' + ${s.label}"
+                    th:selected="${s == order.status}"></option>
+          </select>
+          <button type="submit" class="btn btn-outline" style="width:100%;justify-content:center">
+            Update Status
+          </button>
+        </form>
+      </div>
+
+      <!-- Cancel Order -->
+      <div class="action-box" th:if="${order.status.name() == 'PENDING' or order.status.name() == 'CONFIRMED'}">
+        <div class="action-section-title">Cancel Order</div>
+        <form th:action="@{/orders/{id}/cancel(id=${order.orderId})}" method="post"
+              onsubmit="return confirmCancel()">
+          <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center">
+            ❌ Cancel This Order
+          </button>
+        </form>
+        <p style="font-size:.72rem;color:var(--text-faint)">Only pending or confirmed orders can be cancelled.</p>
+      </div>
+
+      <!-- Delete Order (Admin) -->
+      <div class="action-box">
+        <div class="action-section-title">Admin Actions</div>
+        <form th:action="@{/orders/{id}/delete(id=${order.orderId})}" method="post"
+              onsubmit="return confirmDelete()">
+          <button type="submit" class="btn btn-ghost btn-sm"
+                  style="color:var(--danger);border-color:rgba(255,77,106,.25);width:100%;justify-content:center">
+            🗑 Delete Record
+          </button>
+        </form>
+      </div>
+
+    </div><!-- end RIGHT -->
+
+  </div><!-- end detail-layout -->
+
+</main>
+
+<footer>
+  MedStore Order Module &nbsp;·&nbsp; SE1020 OOP Project
+</footer>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

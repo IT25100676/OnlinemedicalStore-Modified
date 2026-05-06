@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title} + ' | MedStore Orders'">MedStore Orders</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💊</text></svg>">
+</head>
+
+<!-- Navbar fragment -->
+<nav class="navbar" th:fragment="navbar">
+  <a href="/orders/dashboard" class="navbar-brand">
+    <span class="cross">✚</span> MedStore
+  </a>
+  <ul class="nav-links">
+    <li><a th:href="@{/orders/dashboard}"
+           th:classappend="${#httpServletRequest.requestURI.contains('dashboard')} ? 'active'">Dashboard</a></li>
+    <li><a th:href="@{/orders}"
+           th:classappend="${#httpServletRequest.requestURI == '/orders'} ? 'active'">All Orders</a></li>
+    <li><a th:href="@{/orders/place}"
+           th:classappend="${#httpServletRequest.requestURI.contains('place')} ? 'active'">+ Place Order</a></li>
+  </ul>
+</nav>
+
+<!-- Flash messages fragment -->
+<div th:fragment="flash">
+  <div th:if="${successMsg}" class="alert alert-success">
+    <span>✓</span>
+    <span th:text="${successMsg}"></span>
+  </div>
+  <div th:if="${errorMsg}" class="alert alert-error">
+    <span>✕</span>
+    <span th:text="${errorMsg}"></span>
+  </div>
+</div>
+</html>
